@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>مكتب أضواء كربلاء</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#00bcd4">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3135/3135715.png">
+
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="lock-screen" class="glass-effect no-print">
+        <h2 style="margin-bottom: 30px; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">مكتب أضواء كربلاء</h2>
+        <div id="fingerprint-btn"><i class="fa-solid fa-fingerprint fingerprint-icon"></i></div>
+        <div id="lock-msg" style="color:#ffebee; height:20px; margin-top:15px; opacity:0; transition:0.3s;">جاري التحقق...</div>
+        <input type="tel" id="pin-code" class="pin-input glass-input" placeholder="الرمز" maxlength="4">
+    </div>
+
+    <header class="glass-header">
+        <div class="header-icons no-print"><i class="fa-solid fa-cloud" id="cloud-status"></i></div>
+        <div class="header-title" id="page-title">مكتب أضواء كربلاء</div>
+        <div class="header-icons no-print">
+            <i class="fa-solid fa-print" onclick="window.print()"></i>
+            <i class="fa-solid fa-eye-slash" id="eye-icon"></i>
+        </div>
+    </header>
+
+    <section id="home-section" class="active">
+        <div class="card glass-card">
+            <h3 style="margin-bottom: 10px; text-align: center;">ملخص الحسابات</h3>
+            <div class="stat-grid">
+                <div class="stat-box">
+                    <div class="stat-val" id="total-customers">0</div>
+                    <small>الزبائن</small>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-val" id="total-debts-count" style="color:var(--danger)">0</div>
+                    <small>ديون نشطة</small>
+                </div>
+            </div>
+            <div style="margin-top: 15px; text-align: center; padding: 10px; background: rgba(255,255,255,0.3); border-radius: 12px;">
+                <small>إجمالي المبلغ بالسوق</small>
+                <div id="hidden-debt" class="blur-text">******</div>
+            </div>
+        </div>
+        
+        <div class="card glass-card no-print">
+            <button class="btn-main" id="go-to-register">
+                <i class="fa-solid fa-book"></i> الذهاب إلى السجل
+            </button>
+        </div>
+    </section>
+
+    <section id="register-section">
+        <div class="card glass-card" style="border: 1px solid var(--primary);">
+            <h3 style="color: var(--primary-dark); margin-bottom: 15px; text-align: center;">تسديد دفعة (واصل)</h3>
+            
+            <select id="pay-cust-select" class="input-box glass-input" style="margin-bottom: 10px;">
+                <option value="">جاري التحميل...</option>
+            </select>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.4); padding: 10px; border-radius: 8px; margin-bottom: 10px;">
+                <span>المتبقي بذمته:</span>
+                <span id="cust-total-debt" style="font-size: 1.3rem; color: var(--danger); font-weight: bold;">0 $</span>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <input type="number" id="pay-amount" class="input-box glass-input" placeholder="المبلغ الواصل" style="flex:1;">
+                <button class="btn-main" id="btn-process-payment" style="width: auto; padding: 0 20px;">تسديد</button>
+            </div>
+        </div>
+
+        <h4 style="margin: 10px 5px; color: #555;">قائمة الديون المتبقية</h4>
+        <div id="debts-container"></div>
+    </section>
+
+    <section id="invoice-section">
+        <div class="card glass-card">
+            <h3 style="margin-bottom: 20px; text-align: center; color: var(--primary-dark);">بيع جديد</h3>
+            
+            <div class="input-group">
+                <label class="input-label">الزبون</label>
+                <select id="inv-cust-select" class="input-box glass-input"><option value="">اختر الزبون...</option></select>
+            </div>
+
+            <div class="input-group">
+                <label class="input-label">المادة</label>
+                <input type="text" id="inv-item" class="input-box glass-input" placeholder="مثال: ايفون 15">
+            </div>
+
+            <div class="stat-grid">
+                <div class="input-group">
+                    <label class="input-label">السعر الكلي</label>
+                    <input type="number" id="inv-total" class="input-box glass-input" placeholder="0">
+                </div>
+                <div class="input-group">
+                    <label class="input-label">الواصل</label>
+                    <input type="number" id="inv-paid" class="input-box glass-input" placeholder="0">
+                </div>
+            </div>
+
+            <div class="input-group" style="background: rgba(255, 235, 238, 0.6); padding: 10px; border-radius: 8px; text-align: center;">
+                <label class="input-label" style="color: var(--danger);">الباقي (مطلوب)</label>
+                <input type="number" id="inv-remaining" class="input-box" readonly style="text-align: center; font-weight: bold; color: var(--danger); font-size: 1.2rem; background: transparent; border: none;">
+            </div>
+
+            <button class="btn-main" id="btn-save-invoice">حفظ الدين <i class="fa-solid fa-save"></i></button>
+        </div>
+    </section>
+
+    <section id="customer-section">
+        <div class="card glass-card">
+            <h3 style="margin-bottom:15px;">إضافة زبون</h3>
+            <div class="stat-grid">
+                <input type="text" id="new-cust-name" class="input-box glass-input" placeholder="الاسم">
+                <input type="tel" id="new-cust-phone" class="input-box glass-input" placeholder="رقم الهاتف">
+            </div>
+            <button class="btn-main" id="btn-add-customer" style="margin-top: 10px;">إضافة</button>
+        </div>
+        <div class="card glass-card">
+            <h4>سجل الزبائن</h4>
+            <div id="cust-list" style="margin-top:10px;"></div>
+        </div>
+    </section>
+
+    <nav class="bottom-nav glass-nav no-print">
+        <div class="nav-item" data-target="customer-section"><i class="fa-solid fa-users"></i>الزبائن</div>
+        <div class="nav-item" data-target="invoice-section"><i class="fa-solid fa-plus-circle"></i>إضافة</div>
+        <div class="nav-item" data-target="register-section"><i class="fa-solid fa-file-invoice-dollar"></i>السجل</div>
+        <div class="nav-item active" data-target="home-section"><i class="fa-solid fa-chart-pie"></i>الرئيسية</div>
+    </nav>
+
+    <script type="module" src="script.js"></script>
+    <script>
+        // Service Worker Registration for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('Service Worker Registered'))
+                    .catch(err => console.log('SW Error:', err));
+            });
+        }
+    </script>
+</body>
+</html>
