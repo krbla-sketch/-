@@ -1,7 +1,7 @@
 // --- Firebase Setup ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { 
-    getFirestore, collection, addDoc, onSnapshot, updateDoc, doc, 
+    getFirestore, collection, addDoc, onSnapshot, updateDoc, doc, deleteDoc, // <--- تم إضافة deleteDoc
     enableIndexedDbPersistence, query, orderBy, serverTimestamp 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
@@ -57,13 +57,22 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-save-invoice').addEventListener('click', saveInvoice);
     document.getElementById('btn-process-payment').addEventListener('click', processPayment);
 
+    // --- NEW: Delete Button Listener (Event Delegation) ---
+    // هذا الكود الجديد المسؤول عن تشغيل زر الحذف
+    document.getElementById('cust-list').addEventListener('click', (e) => {
+        if (e.target.classList.contains('fa-trash')) {
+            const id = e.target.getAttribute('data-id');
+            deleteCustomer(id);
+        }
+    });
+
     // Initial Load
     startListeners();
 });
 
 // --- Real-time Data Listeners ---
 function startListeners() {
-    const custRef = collection(db, "customers");
+    const custRef = query(collection(db, "customers"), orderBy("createdAt", "desc")); // ترتيب حسب الأحدث
     const invRef = query(collection(db, "invoices"), orderBy("date", "desc"));
 
     onSnapshot(custRef, (snapshot) => {
@@ -110,7 +119,7 @@ function switchTab(id, el) {
 
 function togglePrivacy() {
     privacy = !privacy;
-    updateUI(); // Refreshes the hidden debt text
+    updateUI();
     document.getElementById('eye-icon').className = privacy ? "fa-solid fa-eye-slash" : "fa-solid fa-eye";
 }
 
@@ -140,13 +149,11 @@ async function saveInvoice() {
             total: total,
             paid: paid,
             remaining: remaining,
-            date: new Date().toISOString(), // Standard date format for sorting
+            date: new Date().toISOString(),
             displayDate: new Date().toLocaleDateString('ar-IQ')
         });
         
-        alert("تم الحفظ في قاعدة البيانات!");
-        
-        // Reset
+        alert("تم الحفظ!");
         document.getElementById('inv-item').value = "";
         document.getElementById('inv-total').value = "";
         document.getElementById('inv-paid').value = "";
@@ -164,7 +171,6 @@ function updatePaySelect() {
     let currentVal = select.value;
     select.innerHTML = '<option value="">اختر الزبون...</option>';
     
-    // Get unique customers who have remaining debt
     let indebtedNames = [...new Set(invoices.filter(i => i.remaining > 0).map(i => i.cName))];
     
     customers.forEach(c => {
@@ -204,7 +210,6 @@ async function processPayment() {
     if(!custId || !amount || amount <= 0) return alert("خطأ في المبلغ أو الزبون");
 
     let customer = customers.find(c => c.id == custId);
-    // Get unpaid invoices for this customer, oldest first could be better logic, but here simply by list
     let customerInvoices = invoices.filter(inv => inv.cName === customer.name && inv.remaining > 0);
     
     if(customerInvoices.length === 0) return alert("لا توجد ديون");
@@ -212,7 +217,6 @@ async function processPayment() {
     let remainingToPay = amount;
     let batchPromises = [];
 
-    // Simple distribution logic
     for (let inv of customerInvoices) {
         if (remainingToPay <= 0) break;
 
@@ -220,7 +224,6 @@ async function processPayment() {
         let newRemaining = inv.remaining - deduct;
         let newPaid = inv.paid + deduct;
 
-        // Update in Firestore
         const invRef = doc(db, "invoices", inv.id);
         batchPromises.push(updateDoc(invRef, {
             remaining: newRemaining,
@@ -232,10 +235,9 @@ async function processPayment() {
 
     try {
         await Promise.all(batchPromises);
-        alert("تم التسديد بنجاح وتحديث السيرفر");
+        alert("تم التسديد بنجاح");
         document.getElementById('pay-amount').value = "";
     } catch(e) {
-        console.error(e);
         alert("خطأ في التحديث");
     }
 }
@@ -265,7 +267,7 @@ function renderDebts(filterName = "") {
     });
 }
 
-// --- Customer Logic ---
+// --- Customer Logic (تم التعديل) ---
 async function addCustomer() {
     let name = document.getElementById('new-cust-name').value;
     let phone = document.getElementById('new-cust-phone').value;
@@ -277,11 +279,24 @@ async function addCustomer() {
             phone: phone,
             createdAt: serverTimestamp()
         });
-        alert("تمت الإضافة");
+        alert("تمت إضافة الزبون");
         document.getElementById('new-cust-name').value = "";
         document.getElementById('new-cust-phone').value = "";
     } catch (e) {
-        alert("خطأ");
+        alert("خطأ في الإضافة");
+    }
+}
+
+// دالة الحذف الجديدة
+async function deleteCustomer(id) {
+    if(confirm("هل أنت متأكد من حذف هذا الزبون نهائياً؟")) {
+        try {
+            await deleteDoc(doc(db, "customers", id));
+            alert("تم الحذف بنجاح");
+        } catch (e) {
+            console.error(e);
+            alert("حدث خطأ أثناء الحذف");
+        }
     }
 }
 
@@ -289,20 +304,26 @@ function renderCustomers() {
     let sel = document.getElementById('inv-cust-select');
     let list = document.getElementById('cust-list');
     
-    // Save selection
     let currentSel = sel.value;
     
     sel.innerHTML = '<option value="">اختر الزبون...</option>';
     list.innerHTML = '';
     
     customers.forEach(c => {
+        // إضافة للاختيار
         let opt = document.createElement('option'); 
         opt.value = c.id; 
         opt.innerText = c.name; 
         sel.appendChild(opt);
         
-        list.innerHTML += `<div style="padding:10px; border-bottom:1px solid #eee; display:flex; justify-content:space-between;">
-            <b>${c.name}</b> <small>${c.phone}</small>
+        // إضافة للقائمة مع زر الحذف
+        list.innerHTML += `
+        <div style="padding:15px; border-bottom:1px solid rgba(0,0,0,0.05); display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <b style="font-size:1.1rem;">${c.name}</b>
+                <div style="font-size:0.85rem; color:#666;">${c.phone}</div>
+            </div>
+            <i class="fa-solid fa-trash" data-id="${c.id}" style="color:#ef5350; cursor:pointer; font-size:1.2rem; padding:10px;"></i>
         </div>`;
     });
     
@@ -318,8 +339,7 @@ function updateUI() {
     document.getElementById('hidden-debt').innerText = privacy ? "******" : totalDebt + " $";
     
     let cloudIcon = document.getElementById('cloud-status');
-    // Simple visual check logic could be added here for online/offline listener
-    cloudIcon.style.color = navigator.onLine ? "white" : "orange";
+    if(cloudIcon) cloudIcon.style.color = navigator.onLine ? "white" : "orange";
 }
 
 window.addEventListener('online', updateUI);
